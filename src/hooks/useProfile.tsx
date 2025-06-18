@@ -28,20 +28,49 @@ export const useProfile = () => {
     }
 
     try {
+      console.log('Fetching profile for user:', user.id);
+      
       const { data, error } = await supabase
         .from('profiles')
         .select('*')
         .eq('id', user.id)
-        .single();
+        .maybeSingle();
 
       if (error) {
         console.error('Error fetching profile:', error);
-        setProfile(null);
-      } else {
+        
+        // If no profile exists, try to create one
+        if (error.code === 'PGRST116') {
+          console.log('No profile found, creating one...');
+          const { data: newProfile, error: createError } = await supabase
+            .from('profiles')
+            .insert({
+              id: user.id,
+              name: user.user_metadata?.name || user.email?.split('@')[0] || 'New User',
+              spark_points: 100
+            })
+            .select()
+            .single();
+
+          if (createError) {
+            console.error('Error creating profile:', createError);
+            setProfile(null);
+          } else {
+            console.log('Profile created successfully:', newProfile);
+            setProfile(newProfile);
+          }
+        } else {
+          setProfile(null);
+        }
+      } else if (data) {
+        console.log('Profile fetched successfully:', data);
         setProfile(data);
+      } else {
+        console.log('No profile data returned');
+        setProfile(null);
       }
     } catch (error) {
-      console.error('Error fetching profile:', error);
+      console.error('Error in fetchProfile:', error);
       setProfile(null);
     } finally {
       setLoading(false);

@@ -35,6 +35,8 @@ const Index = () => {
   const [showReflection, setShowReflection] = useState(false);
   const { toast } = useToast();
 
+  console.log('Index render - user:', !!user, 'profile:', !!profile, 'authLoading:', authLoading, 'profileLoading:', profileLoading);
+
   // Show loading while checking auth status
   if (authLoading || profileLoading) {
     return (
@@ -56,9 +58,27 @@ const Index = () => {
     return <Auth />;
   }
 
+  // Show loading if we have a user but no profile yet
+  if (!profile) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50">
+        <div className="text-center">
+          <motion.div
+            animate={{ rotate: 360 }}
+            transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
+            className="w-12 h-12 border-4 border-purple-600 border-t-transparent rounded-full mx-auto mb-4"
+          />
+          <p className="text-purple-600 font-medium">Setting up your profile...</p>
+        </div>
+      </div>
+    );
+  }
+
   // Show onboarding if profile is incomplete
-  if (profile && !profile.personality_type) {
-    setCurrentView('onboarding');
+  if (!profile.personality_type) {
+    if (currentView !== 'onboarding') {
+      setCurrentView('onboarding');
+    }
   }
 
   const handleOnboardingComplete = async (userProfile: UserProfile) => {
