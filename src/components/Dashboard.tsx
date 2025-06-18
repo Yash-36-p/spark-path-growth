@@ -6,8 +6,9 @@ import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 import { UserProfile, Quest } from '@/types';
-import { generatePersonalizedQuests } from '@/utils/questEngine';
-import { Star, Calendar, Clock, User } from 'lucide-react';
+import { useQuests } from '@/hooks/useQuests';
+import { useAuth } from '@/hooks/useAuth';
+import { Star, Calendar, Clock, User, LogOut } from 'lucide-react';
 
 interface DashboardProps {
   userProfile: UserProfile;
@@ -24,33 +25,66 @@ const Dashboard: React.FC<DashboardProps> = ({
   onNavigateToRewards,
   onShowReflection
 }) => {
-  const [dailyQuests, setDailyQuests] = useState<Quest[]>([]);
-  const [weeklyQuests, setWeeklyQuests] = useState<Quest[]>([]);
+  const { quests, userQuests, loading, assignQuest } = useQuests();
+  const { signOut } = useAuth();
   const [currentStreak, setCurrentStreak] = useState(7);
 
-  useEffect(() => {
-    const daily = generatePersonalizedQuests(userProfile, 'daily');
-    const weekly = generatePersonalizedQuests(userProfile, 'weekly');
-    setDailyQuests(daily);
-    setWeeklyQuests(weekly);
-  }, [userProfile]);
+  // Get available quests (not yet assigned to user)
+  const availableQuests = quests.filter(quest => 
+    !userQuests.some(uq => uq.quest_id === quest.id)
+  ).slice(0, 6); // Show max 6 quests
 
-  const totalQuests = userProfile.completedQuests.length;
-  const progressToNextLevel = (sparkPoints % 1000) / 10; // Progress bar percentage
+  // Get active user quests (assigned or in progress)
+  const activeQuests = userQuests.filter(uq => 
+    uq.status === 'assigned' || uq.status === 'in_progress'
+  ).slice(0, 3);
+
+  const totalQuests = userQuests.filter(uq => uq.status === 'completed').length;
+  const progressToNextLevel = (sparkPoints % 1000) / 10;
+
+  const handleQuestClick = async (quest: Quest) => {
+    // Check if quest is already assigned
+    const existingUserQuest = userQuests.find(uq => uq.quest_id === quest.id);
+    
+    if (existingUserQuest) {
+      // Quest already assigned, go to quest detail
+      onQuestSelect(quest);
+    } else {
+      // Assign quest to user first
+      const result = await assignQuest(quest.id);
+      if (!result.error) {
+        onQuestSelect(quest);
+      }
+    }
+  };
+
+  const handleSignOut = async () => {
+    await signOut();
+  };
 
   return (
     <div className="min-h-screen p-4 md:p-6">
       <div className="max-w-6xl mx-auto space-y-6">
-        {/* Header */}
+        {/* Header with Sign Out */}
         <motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="text-center"
+          className="flex justify-between items-center"
         >
-          <h1 className="text-4xl font-bold bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent">
-            Welcome back, {userProfile.name}! ✨
-          </h1>
-          <p className="text-gray-600 mt-2">Ready to continue your growth journey?</p>
+          <div className="text-center flex-1">
+            <h1 className="text-4xl font-bold bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent">
+              Welcome back, {userProfile.name}! ✨
+            </h1>
+            <p className="text-gray-600 mt-2">Ready to continue your growth journey?</p>
+          </div>
+          <Button
+            variant="outline"
+            onClick={handleSignOut}
+            className="flex items-center gap-2"
+          >
+            <LogOut className="w-4 h-4" />
+            Sign Out
+          </Button>
         </motion.div>
 
         {/* Stats Overview */}
@@ -129,7 +163,7 @@ const Dashboard: React.FC<DashboardProps> = ({
         </motion.div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Daily Quests */}
+          {/* Active Quests */}
           <motion.div
             initial={{ opacity: 0, x: -20 }}
             animate={{ opacity: 1, x: 0 }}
@@ -139,41 +173,48 @@ const Dashboard: React.FC<DashboardProps> = ({
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Calendar className="w-5 h-5 text-purple-600" />
-                  Today's Quests
+                  Your Active Quests
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                {dailyQuests.map((quest) => (
-                  <motion.div
-                    key={quest.id}
-                    whileHover={{ scale: 1.02 }}
-                    className="p-4 border rounded-lg hover:shadow-md transition-all cursor-pointer"
-                    onClick={() => onQuestSelect(quest)}
-                  >
-                    <div className="flex items-start justify-between">
-                      <div className="flex-1">
-                        <h4 className="font-medium">{quest.title}</h4>
-                        <p className="text-sm text-gray-600 mt-1">{quest.description}</p>
-                        <div className="flex items-center gap-2 mt-2">
-                          <Badge variant="secondary">{quest.category}</Badge>
-                          <Badge variant="outline">{quest.difficulty}</Badge>
+                {loading ? (
+                  <p className="text-gray-500">Loading your quests...</p>
+                ) : activeQuests.length > 0 ? (
+                  activeQuests.map((userQuest) => (
+                    <motion.div
+                      key={userQuest.id}
+                      whileHover={{ scale: 1.02 }}
+                      className="p-4 border rounded-lg hover:shadow-md transition-all cursor-pointer"
+                      onClick={() => onQuestSelect(userQuest.quest as Quest)}
+                    >
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1">
+                          <h4 className="font-medium">{userQuest.quest.title}</h4>
+                          <p className="text-sm text-gray-600 mt-1">{userQuest.quest.description}</p>
+                          <div className="flex items-center gap-2 mt-2">
+                            <Badge variant="secondary">{userQuest.quest.category}</Badge>
+                            <Badge variant="outline">{userQuest.quest.difficulty}</Badge>
+                            <Badge variant="outline">{userQuest.status}</Badge>
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <div className="flex items-center gap-1 text-purple-600">
+                            <Star className="w-4 h-4" />
+                            <span className="font-medium">{userQuest.quest.points_reward}</span>
+                          </div>
+                          <p className="text-xs text-gray-500 mt-1">{userQuest.quest.estimated_time}</p>
                         </div>
                       </div>
-                      <div className="text-right">
-                        <div className="flex items-center gap-1 text-purple-600">
-                          <Star className="w-4 h-4" />
-                          <span className="font-medium">{quest.pointsReward}</span>
-                        </div>
-                        <p className="text-xs text-gray-500 mt-1">{quest.estimatedTime}</p>
-                      </div>
-                    </div>
-                  </motion.div>
-                ))}
+                    </motion.div>
+                  ))
+                ) : (
+                  <p className="text-gray-500">No active quests. Choose some new quests below!</p>
+                )}
               </CardContent>
             </Card>
           </motion.div>
 
-          {/* Weekly Quests */}
+          {/* Available Quests */}
           <motion.div
             initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}
@@ -183,36 +224,42 @@ const Dashboard: React.FC<DashboardProps> = ({
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Clock className="w-5 h-5 text-blue-600" />
-                  Weekly Challenges
+                  Discover New Quests
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                {weeklyQuests.map((quest) => (
-                  <motion.div
-                    key={quest.id}
-                    whileHover={{ scale: 1.02 }}
-                    className="p-4 border rounded-lg hover:shadow-md transition-all cursor-pointer"
-                    onClick={() => onQuestSelect(quest)}
-                  >
-                    <div className="flex items-start justify-between">
-                      <div className="flex-1">
-                        <h4 className="font-medium">{quest.title}</h4>
-                        <p className="text-sm text-gray-600 mt-1">{quest.description}</p>
-                        <div className="flex items-center gap-2 mt-2">
-                          <Badge variant="secondary">{quest.category}</Badge>
-                          <Badge variant="outline">{quest.difficulty}</Badge>
+                {loading ? (
+                  <p className="text-gray-500">Loading available quests...</p>
+                ) : availableQuests.length > 0 ? (
+                  availableQuests.map((quest) => (
+                    <motion.div
+                      key={quest.id}
+                      whileHover={{ scale: 1.02 }}
+                      className="p-4 border rounded-lg hover:shadow-md transition-all cursor-pointer"
+                      onClick={() => handleQuestClick(quest)}
+                    >
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1">
+                          <h4 className="font-medium">{quest.title}</h4>
+                          <p className="text-sm text-gray-600 mt-1">{quest.description}</p>
+                          <div className="flex items-center gap-2 mt-2">
+                            <Badge variant="secondary">{quest.category}</Badge>
+                            <Badge variant="outline">{quest.difficulty}</Badge>
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <div className="flex items-center gap-1 text-blue-600">
+                            <Star className="w-4 h-4" />
+                            <span className="font-medium">{quest.points_reward}</span>
+                          </div>
+                          <p className="text-xs text-gray-500 mt-1">{quest.estimated_time}</p>
                         </div>
                       </div>
-                      <div className="text-right">
-                        <div className="flex items-center gap-1 text-blue-600">
-                          <Star className="w-4 h-4" />
-                          <span className="font-medium">{quest.pointsReward}</span>
-                        </div>
-                        <p className="text-xs text-gray-500 mt-1">{quest.estimatedTime}</p>
-                      </div>
-                    </div>
-                  </motion.div>
-                ))}
+                    </motion.div>
+                  ))
+                ) : (
+                  <p className="text-gray-500">You've discovered all available quests! More coming soon.</p>
+                )}
               </CardContent>
             </Card>
           </motion.div>
