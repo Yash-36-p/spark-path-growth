@@ -12,6 +12,21 @@ import RewardsStore from '@/components/RewardsStore';
 import { UserProfile, Quest } from '@/types';
 import { useToast } from '@/hooks/use-toast';
 
+// Database Quest interface
+interface DbQuest {
+  id: string;
+  title: string;
+  description: string;
+  category: string;
+  difficulty: 'easy' | 'medium' | 'hard';
+  points_reward: number;
+  estimated_time: string;
+  instructions: string[];
+  reflection_prompts: string[];
+  personality_match: string[];
+  tags: string[];
+}
+
 const Index = () => {
   const { user, loading: authLoading } = useAuth();
   const { profile, loading: profileLoading, updateProfile } = useProfile();
@@ -64,8 +79,23 @@ const Index = () => {
     });
   };
 
-  const handleQuestSelect = (quest: Quest) => {
-    setSelectedQuest(quest);
+  const handleQuestSelect = (quest: DbQuest | Quest) => {
+    // Convert database quest to frontend quest format
+    const frontendQuest: Quest = {
+      id: quest.id,
+      title: quest.title,
+      description: quest.description,
+      category: quest.category,
+      difficulty: quest.difficulty,
+      pointsReward: 'points_reward' in quest ? quest.points_reward : quest.pointsReward,
+      estimatedTime: 'estimated_time' in quest ? quest.estimated_time : quest.estimatedTime,
+      instructions: quest.instructions,
+      reflectionPrompts: 'reflection_prompts' in quest ? quest.reflection_prompts : quest.reflectionPrompts,
+      personalityMatch: 'personality_match' in quest ? quest.personality_match : quest.personalityMatch,
+      tags: quest.tags
+    };
+    
+    setSelectedQuest(frontendQuest);
     setCurrentView('quest');
   };
 

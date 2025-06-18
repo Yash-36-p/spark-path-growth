@@ -45,7 +45,7 @@ export const useQuests = () => {
       if (error) {
         console.error('Error fetching quests:', error);
       } else {
-        setQuests(data || []);
+        setQuests((data || []) as Quest[]);
       }
     } catch (error) {
       console.error('Error fetching quests:', error);
@@ -72,7 +72,7 @@ export const useQuests = () => {
       if (error) {
         console.error('Error fetching user quests:', error);
       } else {
-        setUserQuests(data || []);
+        setUserQuests((data || []) as UserQuest[]);
       }
     } catch (error) {
       console.error('Error fetching user quests:', error);

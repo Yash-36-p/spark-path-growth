@@ -1,14 +1,27 @@
-
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
-import { UserProfile, Quest } from '@/types';
+import { UserProfile } from '@/types';
 import { useQuests } from '@/hooks/useQuests';
 import { useAuth } from '@/hooks/useAuth';
 import { Star, Calendar, Clock, User, LogOut } from 'lucide-react';
+
+interface Quest {
+  id: string;
+  title: string;
+  description: string;
+  category: string;
+  difficulty: 'easy' | 'medium' | 'hard';
+  points_reward: number;
+  estimated_time: string;
+  instructions: string[];
+  reflection_prompts: string[];
+  personality_match: string[];
+  tags: string[];
+}
 
 interface DashboardProps {
   userProfile: UserProfile;
@@ -185,7 +198,7 @@ const Dashboard: React.FC<DashboardProps> = ({
                       key={userQuest.id}
                       whileHover={{ scale: 1.02 }}
                       className="p-4 border rounded-lg hover:shadow-md transition-all cursor-pointer"
-                      onClick={() => onQuestSelect(userQuest.quest as Quest)}
+                      onClick={() => onQuestSelect(userQuest.quest)}
                     >
                       <div className="flex items-start justify-between">
                         <div className="flex-1">
