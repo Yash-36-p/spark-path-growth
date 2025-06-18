@@ -45,7 +45,21 @@ export const useQuests = () => {
       if (error) {
         console.error('Error fetching quests:', error);
       } else {
-        setQuests((data || []) as Quest[]);
+        // Convert database format to frontend format
+        const convertedQuests: Quest[] = (data || []).map(quest => ({
+          id: quest.id,
+          title: quest.title,
+          description: quest.description,
+          category: quest.category,
+          difficulty: quest.difficulty as 'easy' | 'medium' | 'hard',
+          points_reward: quest.points_reward,
+          estimated_time: quest.estimated_time,
+          instructions: quest.instructions,
+          reflection_prompts: quest.reflection_prompts,
+          personality_match: quest.personality_match,
+          tags: quest.tags
+        }));
+        setQuests(convertedQuests);
       }
     } catch (error) {
       console.error('Error fetching quests:', error);
@@ -72,7 +86,31 @@ export const useQuests = () => {
       if (error) {
         console.error('Error fetching user quests:', error);
       } else {
-        setUserQuests((data || []) as UserQuest[]);
+        // Convert database format to frontend format
+        const convertedUserQuests: UserQuest[] = (data || []).map(userQuest => ({
+          id: userQuest.id,
+          quest_id: userQuest.quest_id,
+          status: userQuest.status as 'assigned' | 'in_progress' | 'completed',
+          assigned_at: userQuest.assigned_at,
+          completed_at: userQuest.completed_at,
+          reflection_text: userQuest.reflection_text,
+          reflection_mood: userQuest.reflection_mood,
+          insights: userQuest.insights,
+          quest: {
+            id: userQuest.quest.id,
+            title: userQuest.quest.title,
+            description: userQuest.quest.description,
+            category: userQuest.quest.category,
+            difficulty: userQuest.quest.difficulty as 'easy' | 'medium' | 'hard',
+            points_reward: userQuest.quest.points_reward,
+            estimated_time: userQuest.quest.estimated_time,
+            instructions: userQuest.quest.instructions,
+            reflection_prompts: userQuest.quest.reflection_prompts,
+            personality_match: userQuest.quest.personality_match,
+            tags: userQuest.quest.tags
+          }
+        }));
+        setUserQuests(convertedUserQuests);
       }
     } catch (error) {
       console.error('Error fetching user quests:', error);
@@ -131,7 +169,7 @@ export const useQuests = () => {
         .from('profiles')
         .select('spark_points')
         .eq('id', user.id)
-        .single();
+        .maybeSingle();
 
       if (fetchError) {
         console.error('Error fetching current points:', fetchError);
