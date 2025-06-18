@@ -126,16 +126,27 @@ export const useQuests = () => {
         return { error: questError };
       }
 
-      // Update user's spark points
-      const { error: pointsError } = await supabase.rpc('increment', {
-        table_name: 'profiles',
-        row_id: user.id,
-        column_name: 'spark_points',
-        x: pointsReward
-      });
+      // Update user's spark points using a direct update query
+      const { data: currentProfile, error: fetchError } = await supabase
+        .from('profiles')
+        .select('spark_points')
+        .eq('id', user.id)
+        .single();
 
-      if (pointsError) {
-        console.error('Error updating points:', pointsError);
+      if (fetchError) {
+        console.error('Error fetching current points:', fetchError);
+        return { error: fetchError };
+      }
+
+      const newPoints = (currentProfile?.spark_points || 0) + pointsReward;
+
+      const { error: updateError } = await supabase
+        .from('profiles')
+        .update({ spark_points: newPoints })
+        .eq('id', user.id);
+
+      if (updateError) {
+        console.error('Error updating points:', updateError);
         // Continue anyway, quest completion is more important
       }
 
