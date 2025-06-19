@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '@/hooks/useAuth';
@@ -50,20 +49,89 @@ const Index = () => {
     }
   }, [profile, currentView]);
 
-  // Show loading while checking auth status
-  if (authLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50">
-        <div className="text-center">
-          <motion.div
-            animate={{ rotate: 360 }}
-            transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
-            className="w-12 h-12 border-4 border-purple-600 border-t-transparent rounded-full mx-auto mb-4"
-          />
-          <p className="text-purple-600 font-medium">Loading your growth journey...</p>
+  // Enhanced loading component with particles effect
+  const LoadingComponent = ({ message, subtitle }: { message: string; subtitle?: string }) => (
+    <div className="min-h-screen flex items-center justify-center relative overflow-hidden">
+      {/* Animated background */}
+      <div className="absolute inset-0 bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900">
+        <div className="absolute inset-0 bg-[url('data:image/svg+xml,%3Csvg width="60" height="60" viewBox="0 0 60 60" xmlns="http://www.w3.org/2000/svg"%3E%3Cg fill="none" fill-rule="evenodd"%3E%3Cg fill="%239C92AC" fill-opacity="0.1"%3E%3Ccircle cx="30" cy="30" r="2"/%3E%3C/g%3E%3C/g%3E%3C/svg%3E')] opacity-20" />
+      </div>
+      
+      {/* Floating particles */}
+      {[...Array(20)].map((_, i) => (
+        <motion.div
+          key={i}
+          className="absolute w-2 h-2 bg-white rounded-full opacity-30"
+          animate={{
+            y: [-20, -100],
+            opacity: [0, 1, 0],
+          }}
+          transition={{
+            duration: 3,
+            repeat: Infinity,
+            delay: i * 0.2,
+            ease: "easeOut"
+          }}
+          style={{
+            left: `${Math.random() * 100}%`,
+            top: '100%',
+          }}
+        />
+      ))}
+
+      <div className="text-center z-10 backdrop-blur-sm bg-white/10 p-8 rounded-3xl border border-white/20">
+        <motion.div
+          animate={{ 
+            rotate: 360,
+            scale: [1, 1.1, 1]
+          }}
+          transition={{ 
+            rotate: { duration: 2, repeat: Infinity, ease: "linear" },
+            scale: { duration: 1.5, repeat: Infinity, ease: "easeInOut" }
+          }}
+          className="relative mx-auto mb-6"
+        >
+          <div className="w-16 h-16 border-4 border-purple-400 border-t-transparent rounded-full" />
+          <div className="absolute top-2 left-2 w-12 h-12 border-4 border-blue-400 border-b-transparent rounded-full animate-spin" style={{ animationDirection: 'reverse', animationDuration: '1.5s' }} />
+        </motion.div>
+        
+        <motion.h2
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="text-2xl font-bold text-white mb-2 bg-gradient-to-r from-purple-300 to-blue-300 bg-clip-text text-transparent"
+        >
+          {message}
+        </motion.h2>
+        
+        {subtitle && (
+          <motion.p
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.5 }}
+            className="text-purple-200 text-sm"
+          >
+            {subtitle}
+          </motion.p>
+        )}
+        
+        {/* Pulsing dots */}
+        <div className="flex justify-center space-x-2 mt-4">
+          {[0, 1, 2].map((i) => (
+            <motion.div
+              key={i}
+              className="w-2 h-2 bg-purple-400 rounded-full"
+              animate={{ scale: [1, 1.5, 1], opacity: [0.5, 1, 0.5] }}
+              transition={{ duration: 1.5, repeat: Infinity, delay: i * 0.2 }}
+            />
+          ))}
         </div>
       </div>
-    );
+    </div>
+  );
+
+  // Show loading while checking auth status
+  if (authLoading) {
+    return <LoadingComponent message="Initializing your journey..." subtitle="Preparing the magical experience" />;
   }
 
   // Show auth page if not logged in
@@ -73,35 +141,38 @@ const Index = () => {
 
   // Show loading while profile is being fetched/created
   if (profileLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50">
-        <div className="text-center">
-          <motion.div
-            animate={{ rotate: 360 }}
-            transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
-            className="w-12 h-12 border-4 border-purple-600 border-t-transparent rounded-full mx-auto mb-4"
-          />
-          <p className="text-purple-600 font-medium">Setting up your profile...</p>
-          <p className="text-gray-500 text-sm mt-2">This should only take a moment</p>
-        </div>
-      </div>
-    );
+    return <LoadingComponent message="Crafting your profile..." subtitle="Setting up your personal growth space" />;
   }
 
   // Show error if profile failed to load/create
   if (profileError || !profile) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50">
-        <div className="text-center p-8">
-          <div className="text-red-600 text-xl mb-4">⚠️ Profile Error</div>
-          <p className="text-gray-600 mb-4">{profileError || 'Failed to load profile'}</p>
-          <button 
-            onClick={() => window.location.reload()} 
-            className="bg-purple-600 text-white px-4 py-2 rounded hover:bg-purple-700"
+      <div className="min-h-screen flex items-center justify-center relative overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-br from-red-900 via-purple-900 to-blue-900" />
+        
+        <motion.div
+          initial={{ scale: 0.8, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          className="text-center p-8 backdrop-blur-sm bg-white/10 rounded-3xl border border-red-300/20 relative z-10"
+        >
+          <motion.div
+            animate={{ rotate: [0, 10, -10, 0] }}
+            transition={{ duration: 2, repeat: Infinity }}
+            className="text-6xl mb-4"
           >
-            Retry
-          </button>
-        </div>
+            ⚠️
+          </motion.div>
+          <h2 className="text-2xl font-bold text-white mb-4">Oops! Something went wrong</h2>
+          <p className="text-red-200 mb-6">{profileError || 'Failed to load profile'}</p>
+          <motion.button
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={() => window.location.reload()}
+            className="bg-gradient-to-r from-red-500 to-purple-600 text-white px-6 py-3 rounded-full font-medium hover:shadow-lg transition-all duration-300"
+          >
+            Try Again ✨
+          </motion.button>
+        </motion.div>
       </div>
     );
   }
@@ -168,15 +239,21 @@ const Index = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50">
+    <div className="min-h-screen relative overflow-hidden">
+      {/* Dynamic background */}
+      <div className="fixed inset-0 bg-gradient-to-br from-indigo-900 via-purple-900 to-pink-900">
+        <div className="absolute inset-0 bg-[url('data:image/svg+xml,%3Csvg width="100" height="100" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"%3E%3Cdefs%3E%3Cpattern id="grid" width="10" height="10" patternUnits="userSpaceOnUse"%3E%3Cpath d="M 10 0 L 0 0 0 10" fill="none" stroke="%23ffffff" stroke-width="0.5" opacity="0.1"/%3E%3C/pattern%3E%3C/defs%3E%3Crect width="100" height="100" fill="url(%23grid)"/%3E%3C/svg%3E')] opacity-20" />
+      </div>
+
       <AnimatePresence mode="wait">
         {currentView === 'onboarding' && (
           <motion.div
             key="onboarding"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.5 }}
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 1.1 }}
+            transition={{ duration: 0.6, ease: "easeOut" }}
+            className="relative z-10"
           >
             <Onboarding onComplete={handleOnboardingComplete} />
           </motion.div>
@@ -185,10 +262,11 @@ const Index = () => {
         {currentView === 'dashboard' && profile && (
           <motion.div
             key="dashboard"
-            initial={{ opacity: 0, y: 20 }}
+            initial={{ opacity: 0, y: 50 }}
             animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
-            transition={{ duration: 0.5 }}
+            exit={{ opacity: 0, y: -50 }}
+            transition={{ duration: 0.6, ease: "easeOut" }}
+            className="relative z-10"
           >
             <Dashboard
               userProfile={{
@@ -216,10 +294,11 @@ const Index = () => {
         {currentView === 'quest' && selectedQuest && profile && (
           <motion.div
             key="quest"
-            initial={{ opacity: 0, x: 20 }}
+            initial={{ opacity: 0, x: 100 }}
             animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: -20 }}
-            transition={{ duration: 0.5 }}
+            exit={{ opacity: 0, x: -100 }}
+            transition={{ duration: 0.6, ease: "easeOut" }}
+            className="relative z-10"
           >
             <QuestDetail
               quest={selectedQuest}
@@ -246,10 +325,11 @@ const Index = () => {
         {currentView === 'rewards' && profile && (
           <motion.div
             key="rewards"
-            initial={{ opacity: 0, scale: 0.95 }}
+            initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.95 }}
-            transition={{ duration: 0.5 }}
+            exit={{ opacity: 0, scale: 1.1 }}
+            transition={{ duration: 0.6, ease: "easeOut" }}
+            className="relative z-10"
           >
             <RewardsStore
               sparkPoints={profile.spark_points}
