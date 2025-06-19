@@ -18,6 +18,7 @@ interface Profile {
 export const useProfile = () => {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const { user } = useAuth();
 
   const fetchProfile = async () => {
@@ -26,6 +27,9 @@ export const useProfile = () => {
       setLoading(false);
       return;
     }
+
+    setLoading(true);
+    setError(null);
 
     try {
       console.log('Fetching profile for user:', user.id);
@@ -38,39 +42,18 @@ export const useProfile = () => {
 
       if (error) {
         console.error('Error fetching profile:', error);
-        
-        // If no profile exists, try to create one
-        if (error.code === 'PGRST116') {
-          console.log('No profile found, creating one...');
-          const { data: newProfile, error: createError } = await supabase
-            .from('profiles')
-            .insert({
-              id: user.id,
-              name: user.user_metadata?.name || user.email?.split('@')[0] || 'New User',
-              spark_points: 100
-            })
-            .select()
-            .single();
-
-          if (createError) {
-            console.error('Error creating profile:', createError);
-            setProfile(null);
-          } else {
-            console.log('Profile created successfully:', newProfile);
-            setProfile(newProfile);
-          }
-        } else {
-          setProfile(null);
-        }
+        setError(`Failed to fetch profile: ${error.message}`);
+        setProfile(null);
       } else if (data) {
         console.log('Profile fetched successfully:', data);
         setProfile(data);
       } else {
-        console.log('No profile data returned');
+        console.log('No profile found - should be created by trigger');
         setProfile(null);
       }
     } catch (error) {
       console.error('Error in fetchProfile:', error);
+      setError('An unexpected error occurred');
       setProfile(null);
     } finally {
       setLoading(false);
@@ -103,11 +86,12 @@ export const useProfile = () => {
 
   useEffect(() => {
     fetchProfile();
-  }, [user]);
+  }, [user?.id]); // Only depend on user.id to avoid infinite loops
 
   return {
     profile,
     loading,
+    error,
     updateProfile,
     refetch: fetchProfile
   };

@@ -29,16 +29,25 @@ interface DbQuest {
 
 const Index = () => {
   const { user, loading: authLoading } = useAuth();
-  const { profile, loading: profileLoading, updateProfile } = useProfile();
+  const { profile, loading: profileLoading, error: profileError, updateProfile } = useProfile();
   const [currentView, setCurrentView] = useState<'onboarding' | 'dashboard' | 'quest' | 'rewards'>('dashboard');
   const [selectedQuest, setSelectedQuest] = useState<Quest | null>(null);
   const [showReflection, setShowReflection] = useState(false);
   const { toast } = useToast();
 
-  console.log('Index render - user:', !!user, 'profile:', !!profile, 'authLoading:', authLoading, 'profileLoading:', profileLoading);
+  console.log('Index render - user:', !!user, 'profile:', !!profile, 'authLoading:', authLoading, 'profileLoading:', profileLoading, 'profileError:', profileError);
 
-  // Show loading while checking auth status
-  if (authLoading || profileLoading) {
+  // Determine current view based on profile state
+  useEffect(() => {
+    if (profile && !profile.personality_type && currentView !== 'onboarding') {
+      setCurrentView('onboarding');
+    } else if (profile && profile.personality_type && currentView === 'onboarding') {
+      setCurrentView('dashboard');
+    }
+  }, [profile, currentView]);
+
+  // Show loading while checking auth status or profile
+  if (authLoading || (user && profileLoading)) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50">
         <div className="text-center">
@@ -58,7 +67,25 @@ const Index = () => {
     return <Auth />;
   }
 
-  // Show loading if we have a user but no profile yet
+  // Show error if profile failed to load
+  if (profileError && !profile) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50">
+        <div className="text-center p-8">
+          <div className="text-red-600 text-xl mb-4">⚠️ Profile Error</div>
+          <p className="text-gray-600 mb-4">{profileError}</p>
+          <button 
+            onClick={() => window.location.reload()} 
+            className="bg-purple-600 text-white px-4 py-2 rounded hover:bg-purple-700"
+          >
+            Retry
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // Show loading if we have a user but no profile yet (should be temporary due to trigger)
   if (!profile) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50">
@@ -69,20 +96,14 @@ const Index = () => {
             className="w-12 h-12 border-4 border-purple-600 border-t-transparent rounded-full mx-auto mb-4"
           />
           <p className="text-purple-600 font-medium">Setting up your profile...</p>
+          <p className="text-gray-500 text-sm mt-2">This should only take a moment</p>
         </div>
       </div>
     );
   }
 
-  // Show onboarding if profile is incomplete
-  if (!profile.personality_type) {
-    if (currentView !== 'onboarding') {
-      setCurrentView('onboarding');
-    }
-  }
-
   const handleOnboardingComplete = async (userProfile: UserProfile) => {
-    await updateProfile({
+    const result = await updateProfile({
       name: userProfile.name,
       personality_type: userProfile.personalityType,
       current_mood: userProfile.currentMood,
@@ -92,11 +113,19 @@ const Index = () => {
       categories: userProfile.preferences.categories
     });
     
-    setCurrentView('dashboard');
-    toast({
-      title: "Profile Complete! ✨",
-      description: "Your personalized growth journey begins now!",
-    });
+    if (result.error) {
+      toast({
+        title: "Error updating profile",
+        description: "Please try again.",
+        variant: "destructive"
+      });
+    } else {
+      setCurrentView('dashboard');
+      toast({
+        title: "Profile Complete! ✨",
+        description: "Your personalized growth journey begins now!",
+      });
+    }
   };
 
   const handleQuestSelect = (quest: DbQuest | Quest) => {
@@ -161,7 +190,7 @@ const Index = () => {
               userProfile={{
                 id: profile.id,
                 name: profile.name,
-                personalityType: profile.personality_type as any,
+                personalityType: profile.personality_type as any || 'introspective',
                 currentMood: profile.current_mood || 5,
                 goals: profile.goals || [],
                 preferences: {
@@ -193,7 +222,7 @@ const Index = () => {
               userProfile={{
                 id: profile.id,
                 name: profile.name,
-                personalityType: profile.personality_type as any,
+                personalityType: profile.personality_type as any || 'introspective',
                 currentMood: profile.current_mood || 5,
                 goals: profile.goals || [],
                 preferences: {
