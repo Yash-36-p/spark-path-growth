@@ -39,15 +39,19 @@ const Index = () => {
 
   // Determine current view based on profile state
   useEffect(() => {
-    if (profile && !profile.personality_type && currentView !== 'onboarding') {
-      setCurrentView('onboarding');
-    } else if (profile && profile.personality_type && currentView === 'onboarding') {
-      setCurrentView('dashboard');
+    if (profile) {
+      if (!profile.personality_type && currentView !== 'onboarding') {
+        console.log('Profile exists but no personality type, showing onboarding');
+        setCurrentView('onboarding');
+      } else if (profile.personality_type && currentView === 'onboarding') {
+        console.log('Profile complete, showing dashboard');
+        setCurrentView('dashboard');
+      }
     }
   }, [profile, currentView]);
 
-  // Show loading while checking auth status or profile
-  if (authLoading || (user && profileLoading)) {
+  // Show loading while checking auth status
+  if (authLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50">
         <div className="text-center">
@@ -67,26 +71,8 @@ const Index = () => {
     return <Auth />;
   }
 
-  // Show error if profile failed to load
-  if (profileError && !profile) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50">
-        <div className="text-center p-8">
-          <div className="text-red-600 text-xl mb-4">⚠️ Profile Error</div>
-          <p className="text-gray-600 mb-4">{profileError}</p>
-          <button 
-            onClick={() => window.location.reload()} 
-            className="bg-purple-600 text-white px-4 py-2 rounded hover:bg-purple-700"
-          >
-            Retry
-          </button>
-        </div>
-      </div>
-    );
-  }
-
-  // Show loading if we have a user but no profile yet (should be temporary due to trigger)
-  if (!profile) {
+  // Show loading while profile is being fetched/created
+  if (profileLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50">
         <div className="text-center">
@@ -97,6 +83,24 @@ const Index = () => {
           />
           <p className="text-purple-600 font-medium">Setting up your profile...</p>
           <p className="text-gray-500 text-sm mt-2">This should only take a moment</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Show error if profile failed to load/create
+  if (profileError || !profile) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50">
+        <div className="text-center p-8">
+          <div className="text-red-600 text-xl mb-4">⚠️ Profile Error</div>
+          <p className="text-gray-600 mb-4">{profileError || 'Failed to load profile'}</p>
+          <button 
+            onClick={() => window.location.reload()} 
+            className="bg-purple-600 text-white px-4 py-2 rounded hover:bg-purple-700"
+          >
+            Retry
+          </button>
         </div>
       </div>
     );

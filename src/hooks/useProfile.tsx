@@ -21,8 +21,38 @@ export const useProfile = () => {
   const [error, setError] = useState<string | null>(null);
   const { user } = useAuth();
 
+  const createProfile = async (userId: string, userEmail: string) => {
+    console.log('Creating profile for user:', userId);
+    
+    const defaultName = userEmail ? userEmail.split('@')[0] : 'New User';
+    
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .insert({
+          id: userId,
+          name: defaultName,
+          spark_points: 100
+        })
+        .select()
+        .single();
+
+      if (error) {
+        console.error('Error creating profile:', error);
+        return null;
+      }
+
+      console.log('Profile created successfully:', data);
+      return data;
+    } catch (error) {
+      console.error('Error in createProfile:', error);
+      return null;
+    }
+  };
+
   const fetchProfile = async () => {
     if (!user) {
+      console.log('No user, clearing profile');
       setProfile(null);
       setLoading(false);
       return;
@@ -48,8 +78,14 @@ export const useProfile = () => {
         console.log('Profile fetched successfully:', data);
         setProfile(data);
       } else {
-        console.log('No profile found - should be created by trigger');
-        setProfile(null);
+        console.log('No profile found, creating one...');
+        // Profile doesn't exist, create it
+        const newProfile = await createProfile(user.id, user.email || '');
+        if (newProfile) {
+          setProfile(newProfile);
+        } else {
+          setError('Failed to create profile');
+        }
       }
     } catch (error) {
       console.error('Error in fetchProfile:', error);
@@ -86,7 +122,7 @@ export const useProfile = () => {
 
   useEffect(() => {
     fetchProfile();
-  }, [user?.id]); // Only depend on user.id to avoid infinite loops
+  }, [user?.id]);
 
   return {
     profile,
