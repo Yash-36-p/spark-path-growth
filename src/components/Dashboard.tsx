@@ -90,8 +90,7 @@ const Dashboard: React.FC<DashboardProps> = ({
       opacity: 1,
       y: 0,
       transition: {
-        duration: 0.5,
-        ease: "easeOut"
+        duration: 0.5
       }
     }
   };
@@ -101,8 +100,7 @@ const Dashboard: React.FC<DashboardProps> = ({
       scale: 1.02,
       y: -5,
       transition: {
-        duration: 0.2,
-        ease: "easeOut"
+        duration: 0.2
       }
     }
   };
